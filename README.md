@@ -24,6 +24,8 @@ https://github.com/user-attachments/assets/8f551082-6982-4513-8fe7-b0f111be982d
 
 - 📋 **Comprehensive API Coverage**: Supports all functions available in Redmine's REST API
 - 🔒 **Read-Only Mode**: Supports safe data reference mode
+- 🔐 **Basic Authentication Support**: Support for Redmine instances behind Basic Auth
+- 🌐 **Proxy Support**: Support for HTTP proxy and PAC file configuration
 
 ## Prerequisites
 
@@ -50,6 +52,22 @@ The following environment variables are required (specified in MCP client config
   - `true`: Read-only mode (disables data modification operations)
   - `false` or unset: Allow all operations (default)
 
+#### Basic Authentication (Optional)
+
+If your Redmine instance is behind Basic Authentication:
+
+- **REDMINE_BASIC_AUTH_USER**: Basic Auth username
+- **REDMINE_BASIC_AUTH_PASSWORD**: Basic Auth password
+
+#### Proxy Configuration (Optional)
+
+If you need to access Redmine through a proxy:
+
+- **REDMINE_PROXY_URL**: HTTP proxy URL (e.g., `http://proxy.example.com:8080`)
+  - Also supports `HTTPS_PROXY` or `HTTP_PROXY` environment variables
+- **REDMINE_PAC_URL** or **PAC_URL**: URL to a PAC (Proxy Auto-Configuration) file
+  - Example: `https://example.com/proxy.pac`
+
 ### MCP Client Configuration
 
 #### Using npx (Recommended for quick start)
@@ -61,7 +79,7 @@ Add the following as MCP configuration for your AI agent:
   "mcpServers": {
     "redmine": {
       "command": "npx",
-      "args": ["-y", "@onozaty/redmine-mcp-server"],
+      "args": ["-y", "@ymkthr/redmine-mcp-server"],
       "env": {
         "REDMINE_URL": "https://your-redmine.example.com",
         "REDMINE_API_KEY": "your-api-key-here",
