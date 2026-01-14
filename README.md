@@ -68,6 +68,13 @@ If you need to access Redmine through a proxy:
 - **REDMINE_PAC_URL** or **PAC_URL**: URL to a PAC (Proxy Auto-Configuration) file
   - Example: `https://example.com/proxy.pac`
 
+#### Proxy Authentication (Optional)
+
+If your proxy requires authentication:
+
+- **REDMINE_PROXY_AUTH_USER** or **PROXY_AUTH_USER**: Proxy username
+- **REDMINE_PROXY_AUTH_PASSWORD** or **PROXY_AUTH_PASSWORD**: Proxy password
+
 ### MCP Client Configuration
 
 #### Using npx (Recommended for quick start)

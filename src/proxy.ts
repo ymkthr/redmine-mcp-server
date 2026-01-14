@@ -1,17 +1,8 @@
-/**
- * プロキシ設定管理モジュール
- * PAC URLまたは固定プロキシURLに対応
- */
-
 import { config } from "./config.js";
 
-// PACファイルのキャッシュ
 let cachedPacScript: string | null = null;
 let cachedPacFunction: ((url: string, host: string) => string) | null = null;
 
-/**
- * PACファイルをフェッチしてパースする
- */
 async function loadPacFile(): Promise<((url: string, host: string) => string) | null> {
   if (!config.pacUrl) {
     return null;
@@ -31,7 +22,6 @@ async function loadPacFile(): Promise<((url: string, host: string) => string) | 
 
     cachedPacScript = await response.text();
     
-    // PAC内で使用されるヘルパー関数を定義
     const pacHelpers = `
       function isPlainHostName(host) {
         return host.indexOf('.') === -1;
@@ -45,16 +35,16 @@ async function loadPacFile(): Promise<((url: string, host: string) => string) | 
                (hostdom.indexOf(host) === 0 && hostdom.charAt(host.length) === '.');
       }
       function isResolvable(host) {
-        return true; // 簡易実装
+        return true;
       }
       function isInNet(host, pattern, mask) {
-        return false; // 簡易実装
+        return false;
       }
       function dnsResolve(host) {
-        return host; // 簡易実装
+        return host;
       }
       function myIpAddress() {
-        return "127.0.0.1"; // 簡易実装
+        return "127.0.0.1";
       }
       function dnsDomainLevels(host) {
         return host.split('.').length - 1;
@@ -68,7 +58,6 @@ async function loadPacFile(): Promise<((url: string, host: string) => string) | 
       function timeRange() { return true; }
     `;
 
-    // FindProxyForURL関数を評価
     const fullScript = pacHelpers + cachedPacScript;
     const fn = new Function('url', 'host', fullScript + '\nreturn FindProxyForURL(url, host);');
     cachedPacFunction = fn as (url: string, host: string) => string;
@@ -81,19 +70,14 @@ async function loadPacFile(): Promise<((url: string, host: string) => string) | 
   }
 }
 
-/**
- * PACスクリプトの結果からプロキシURLを抽出
- */
 function parseProxyResult(result: string): string | null {
   if (!result || result === 'DIRECT') {
     return null;
   }
 
-  // "PROXY host:port" または "PROXY host:port; DIRECT" 形式をパース
   const match = result.match(/PROXY\s+([^;\s]+)/i);
   if (match) {
     const proxyHost = match[1];
-    // http://を付与
     if (!proxyHost.startsWith('http://') && !proxyHost.startsWith('https://')) {
       return `http://${proxyHost}`;
     }
@@ -103,13 +87,28 @@ function parseProxyResult(result: string): string | null {
   return null;
 }
 
-/**
- * URLに対するプロキシエージェントを取得
- */
+function addProxyAuth(proxyUrl: string): string {
+  if (!config.proxyAuthUser || !config.proxyAuthPassword) {
+    return proxyUrl;
+  }
+
+  try {
+    const url = new URL(proxyUrl);
+    if (url.username || url.password) {
+      return proxyUrl;
+    }
+    url.username = encodeURIComponent(config.proxyAuthUser);
+    url.password = encodeURIComponent(config.proxyAuthPassword);
+    return url.toString();
+  } catch (error) {
+    console.error(`Failed to add auth to proxy URL: ${error}`);
+    return proxyUrl;
+  }
+}
+
 export async function getProxyAgent(targetUrl: string): Promise<unknown | null> {
   let proxyUrl: string | null = null;
 
-  // PACファイルが設定されている場合
   if (config.pacUrl) {
     const pacFunction = await loadPacFile();
     if (pacFunction) {
@@ -124,19 +123,19 @@ export async function getProxyAgent(targetUrl: string): Promise<unknown | null> 
     }
   }
 
-  // 固定プロキシURLが設定されている場合
   if (!proxyUrl && config.proxyUrl) {
     proxyUrl = config.proxyUrl;
   }
 
-  // プロキシが不要な場合
   if (!proxyUrl) {
     return null;
   }
 
-  console.error(`Using proxy: ${proxyUrl}`);
+  proxyUrl = addProxyAuth(proxyUrl);
 
-  // undiciのProxyAgentを動的にインポート
+  const maskedUrl = proxyUrl.replace(/:\/\/[^:]+:[^@]+@/, '://***:***@');
+  console.error(`Using proxy: ${maskedUrl}`);
+
   try {
     const { ProxyAgent } = await import('undici');
     return new ProxyAgent(proxyUrl);
